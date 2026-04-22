@@ -11,7 +11,7 @@ export default function LandingHero({ onSample }) {
         </h1>
 
         <p className="hero-sub">
-          Fill the form, pay ₱20, and get a professional 20–25 slide deck —
+          Fill the form, pay ₱20, and get a professional 25–30 slide deck —
           complete with real APA references, academic content, and presenter notes.
           For JHS, SHS, College, and Graduate!
         </p>
