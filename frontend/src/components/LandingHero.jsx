@@ -17,7 +17,7 @@ export default function LandingHero({ onSample }) {
         </p>
 
         <div className="hero-stats">
-          <div className="stat-pill"><strong>20–25</strong> Slides</div>
+          <div className="stat-pill"><strong>20–30</strong> Slides</div>
           <div className="stat-pill"><strong>₱20</strong> Flat Rate</div>
           <div className="stat-pill"><strong>APA 7th</strong> References</div>
           <div className="stat-pill"><strong>EN / FIL</strong> Language</div>
@@ -27,7 +27,7 @@ export default function LandingHero({ onSample }) {
 
       <div className="features">
         {[
-          "🧠 AI-generated content",
+          "🧠 AI-searched generated content",
           "📊 Professional layouts",
           "📚 Real references",
           "🗒️ Presenter notes",

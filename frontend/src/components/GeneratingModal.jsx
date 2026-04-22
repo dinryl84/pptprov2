@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 
 const STEPS = [
-  { icon: "🧠", label: "AI is studying your topic…" },
-  { icon: "📝", label: "Creating a 20–25 slide outline…" },
+  { icon: "🧠", label: "Searchingying your topic…" },
+  { icon: "📝", label: "Creating a 20–30 slide outline…" },
   { icon: "✍️", label: "Writing detailed content for each slide…" },
   { icon: "🔍", label: "Verifying references (APA 7th edition)…" },
   { icon: "🎨", label: "Applying professional layout and colors…" },
@@ -73,7 +73,7 @@ export default function GeneratingModal({ subject, title, wantPDF }) {
           <div className="gen-warn-text">
             <strong>Do not close this tab!</strong>
             <span>
-              This takes <strong>30–90 seconds</strong>. Closing will cancel generation.
+              This takes <strong> 3 minutes</strong>. Closing/Leaving will cancel generation.
             </span>
           </div>
         </div>
