@@ -2,7 +2,7 @@ export default function LandingHero({ onSample }) {
   return (
     <>
       <section className="hero">
-        <div className="hero-eyebrow">🇵🇭 #1 AI Report Tool for Filipino Students</div>
+        <div className="hero-eyebrow">Ako ang mag ppt ikaw ang mag STUDY!</div>
 
         <h1>
           Generate your<br />
@@ -32,7 +32,7 @@ export default function LandingHero({ onSample }) {
           "📚 Real references",
           "🗒️ Presenter notes",
           "📱 Mobile-friendly",
-          "⚡ Ready in 60 seconds",
+          "⚡ Ready in 3 mins",
         ].map((f) => (
           <div className="feature-chip" key={f}>{f}</div>
         ))}

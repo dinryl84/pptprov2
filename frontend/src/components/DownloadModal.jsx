@@ -79,7 +79,7 @@ export default function DownloadModal({
         )}
 
         <p className="dl-note">
-          ⏱ Links expire in 1 hour · ⚠️ Verify all AI-generated facts before submitting
+          ⏱ Links expire in 1 hour · 
         </p>
       </div>
     </div>

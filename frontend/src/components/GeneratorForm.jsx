@@ -117,7 +117,7 @@ export default function GeneratorForm({ onGenerate }) {
               </div>
 
               {/* Instructions */}
-              <div className="field">
+              {/* <div className="field">
                 <label htmlFor="instructions">
                   Special Instructions <span style={{ color: "var(--silver)", fontWeight: 400, textTransform: "none" }}>(optional)</span>
                 </label>
@@ -128,7 +128,7 @@ export default function GeneratorForm({ onGenerate }) {
                   onChange={handleChange}
                   placeholder="Focus on quantitative methods, add more Philippine examples…"
                 />
-              </div>
+              </div> */}
 
             </div>
 
