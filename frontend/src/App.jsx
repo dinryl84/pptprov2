@@ -9,6 +9,7 @@ import "./styles/global.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 const STORAGE_KEY = "pptpro_download";
+const PENDING_KEY = "pptpro_pending_ref";
 
 export default function App() {
   const [showPaywall, setShowPaywall]       = useState(false);
@@ -18,7 +19,6 @@ export default function App() {
   const [formData, setFormData]             = useState(null);
   const [error, setError]                   = useState("");
 
-  // Token + metadata — persisted in localStorage so page refresh doesn't lose it
   const [dlInfo, setDlInfo] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -26,11 +26,6 @@ export default function App() {
     } catch (_) {}
     return null;
   });
-
-  // On mount: if we have a saved token, re-show download modal automatically
-  useEffect(() => {
-    if (dlInfo?.token) setShowDownload(true);
-  }, []);
 
   const saveDlInfo = (info) => {
     setDlInfo(info);
@@ -40,6 +35,80 @@ export default function App() {
   const clearDlInfo = () => {
     setDlInfo(null);
     try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+  };
+
+  // ── On mount: check if returning from PayMongo payment redirect ─────────────
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get("payment");
+    const ref = params.get("ref");
+
+    // Clean URL immediately regardless of outcome
+    if (paymentStatus || ref) {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+
+    if (paymentStatus === "success" && ref) {
+      // Payment confirmed — start polling for generation result
+      localStorage.removeItem(PENDING_KEY);
+      setShowGenerating(true);
+      pollForResult(ref);
+    } else if (paymentStatus === "failed" || paymentStatus === "cancelled") {
+      setError("Payment was cancelled or failed. Please try again.");
+    } else if (dlInfo?.token) {
+      // Existing completed download
+      setShowDownload(true);
+    }
+  }, []);
+
+  // ── Poll backend until generation is complete ──────────────────────────────
+  const pollForResult = async (ref) => {
+    const MAX_ATTEMPTS = 40;  // 40 × 5s = ~3.3 minutes max
+    let attempts = 0;
+
+    const poll = async () => {
+      attempts++;
+      try {
+        const res = await fetch(`${API_BASE}/api/payment-status/${ref}`);
+        if (!res.ok) throw new Error("Status check failed");
+        const data = await res.json();
+
+        if (data.status === "ready") {
+          saveDlInfo({
+            token:   data.token,
+            has_pdf: data.has_pdf,
+            title:   data.title,
+            subject: data.subject,
+          });
+          setShowGenerating(false);
+          setShowDownload(true);
+          return;
+        }
+
+        if (data.status === "failed") {
+          setShowGenerating(false);
+          setError("Generation failed after payment. Please contact support with ref: " + ref);
+          return;
+        }
+
+        // Still processing — keep polling
+        if (attempts < MAX_ATTEMPTS) {
+          setTimeout(poll, 5000);
+        } else {
+          setShowGenerating(false);
+          setError("Generation is taking too long. Please contact support with ref: " + ref);
+        }
+      } catch (e) {
+        if (attempts < MAX_ATTEMPTS) {
+          setTimeout(poll, 5000);
+        } else {
+          setShowGenerating(false);
+          setError("Could not check generation status. Contact support with ref: " + ref);
+        }
+      }
+    };
+
+    poll();
   };
 
   // Warn before closing during generation
@@ -57,48 +126,6 @@ export default function App() {
     setShowPaywall(true);
   };
 
-  const handlePaymentConfirmed = async () => {
-    setShowPaywall(false);
-    setShowGenerating(true);
-    setError("");
-
-    try {
-      const endpoint = formData.wantPDF ? "/api/generate/both" : "/api/generate";
-      const response = await fetch(`${API_BASE}${endpoint}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          subject:      formData.subject,
-          level:        formData.level,
-          title:        formData.title,
-          language:     formData.language,
-          instructions: formData.instructions || "",
-        }),
-      });
-
-      if (!response.ok) {
-        let detail = "Generation failed. Please try again.";
-        try { const err = await response.json(); detail = err.detail || detail; } catch (_) {}
-        throw new Error(detail);
-      }
-
-      const json = await response.json();
-      saveDlInfo({
-        token:   json.token,
-        has_pdf: json.has_pdf,
-        title:   formData.title,
-        subject: formData.subject,
-      });
-
-      setShowGenerating(false);
-      setShowDownload(true);
-    } catch (e) {
-      setError(e.message);
-      setShowGenerating(false);
-    }
-  };
-
-  // Downloads use direct URL navigation — browser handles the file, no blob needed
   const handleDownloadPPTX = () => {
     if (!dlInfo?.token) return;
     window.location.href = `${API_BASE}/api/download/${dlInfo.token}/pptx`;
@@ -122,7 +149,6 @@ export default function App() {
           <span className="nav-title">ppt<span>Pro</span></span>
         </a>
         <div className="nav-right">
-          {/* Persistent download button survives page resets */}
           {dlInfo?.token && !showDownload && (
             <button className="btn-primary" onClick={() => setShowDownload(true)}>
               ⬇ My Downloads
@@ -153,12 +179,12 @@ export default function App() {
         🇵🇭 Made for Filipino Students &nbsp;•&nbsp; pptPro © 2025 &nbsp;•&nbsp; Powered by AI
       </footer>
 
-      {showPaywall && (
+      {showPaywall && formData && (
         <PaywallModal
           onClose={() => setShowPaywall(false)}
-          onConfirm={handlePaymentConfirmed}
-          title={formData?.title}
-          wantPDF={formData?.wantPDF}
+          title={formData.title}
+          wantPDF={formData.wantPDF}
+          formData={formData}
         />
       )}
 
