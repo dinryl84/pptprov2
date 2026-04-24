@@ -149,9 +149,18 @@ async def _create_paymongo_checkout(amount: int, method: str, description: str, 
     payload = {
         "data": {
             "attributes": {
-                "amount":               amount,
-                "currency":             "PHP",
-                "description":          description[:255],
+                "billing": {
+                    "name":  "pptPro Customer",
+                    "email": "customer@pptpro.app",
+                },
+                "line_items": [
+                    {
+                        "currency": "PHP",
+                        "amount":   amount,
+                        "name":     description[:100],
+                        "quantity": 1,
+                    }
+                ],
                 "payment_method_types": payment_method_types,
                 "success_url": f"{FRONTEND_URL}?payment=success&ref={ref}",
                 "cancel_url":  f"{FRONTEND_URL}?payment=cancelled&ref={ref}",
