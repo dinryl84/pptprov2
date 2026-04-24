@@ -28,9 +28,35 @@ _STORE_FILE = os.path.join(
 _store: Dict[str, Dict] = {}
 _store_lock = threading.Lock()
 
-# ── In-memory payment job store ───────────────────────────────────────────────
+# ── Disk-persisted payment job store ─────────────────────────────────────────
+_JOBS_FILE = os.path.join(
+    os.environ.get("STORE_DIR", os.path.dirname(__file__)), ".jobs_store.json"
+)
 _jobs: Dict[str, Dict] = {}
 _jobs_lock = threading.Lock()
+
+
+def _load_jobs():
+    global _jobs
+    try:
+        if os.path.exists(_JOBS_FILE):
+            with open(_JOBS_FILE, "r") as f:
+                data = json.load(f)
+            # Keep jobs from last 2 hours only
+            cutoff = time.time() - 7200
+            _jobs = {k: v for k, v in data.items() if v.get("created_at", 0) > cutoff}
+            print(f"🗂️  Jobs store loaded: {len(_jobs)} active job(s)")
+    except Exception as e:
+        print(f"⚠️  Could not load jobs store: {e}")
+        _jobs = {}
+
+
+def _save_jobs():
+    try:
+        with open(_JOBS_FILE, "w") as f:
+            json.dump(_jobs, f)
+    except Exception as e:
+        print(f"⚠️  Could not save jobs store: {e}")
 
 
 def _load_store():
@@ -105,6 +131,7 @@ def _get_entry(token: str) -> Dict:
 
 
 _load_store()
+_load_jobs()
 
 
 # ── Request models ─────────────────────────────────────────────────────────────
@@ -218,6 +245,7 @@ async def _run_generation(ref: str, job: Dict):
                 "token":   token,
                 "has_pdf": pdf_path is not None,
             })
+            _save_jobs()
         print(f"✅ Generation done for ref {ref}")
 
     except Exception as e:
@@ -225,6 +253,7 @@ async def _run_generation(ref: str, job: Dict):
         _cleanup_paths(pptx_path, pdf_path)
         with _jobs_lock:
             _jobs[ref]["status"] = "failed"
+            _save_jobs()
 
 
 # ── POST /api/create-payment ───────────────────────────────────────────────────
@@ -246,6 +275,7 @@ async def create_payment(req: CreatePaymentRequest):
             "want_pdf":     req.want_pdf,
             "created_at":   time.time(),
         }
+        _save_jobs()
 
     checkout_url = await _create_paymongo_checkout(
         amount=req.amount,
