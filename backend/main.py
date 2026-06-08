@@ -1,24 +1,20 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routes.generate import router as generate_router
+from routes.generate_lesson import router as lesson_router   # ← NEW
 import os
 
-app = FastAPI(title="pptPro API", version="2.1.0")
+app = FastAPI(title="pptPro API", version="2.2.0")
 
-# ── FIX: Restrict CORS to your Vercel frontend only ───────────────────────────
-# Previously this was allow_origins=["*"] which let ANY website call your API.
-# Now only your Vercel frontend (and localhost for dev) can make requests.
-#
-# If your Vercel URL changes, update FRONTEND_URL in Render env vars.
-# Format: https://your-app.vercel.app (no trailing slash)
-
+# ── CORS ───────────────────────────────────────────────────────────────────────
 _FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://pptprov2.vercel.app")
 
 ALLOWED_ORIGINS = [
     _FRONTEND_URL,
-    # Allow Vercel preview deployments (branch deploys)
-    # These match: https://pptprov2-git-main-yourusername.vercel.app
     "https://pptprov2.vercel.app",
+    # ── LessonPro frontend (update this when you host LessonPro) ──
+    # If you host LessonPro on Vercel, add its URL here.
+    # For now, file:// local use is handled by allowing * in dev mode.
 ]
 
 # Add localhost for local development
@@ -28,20 +24,24 @@ if os.environ.get("ENVIRONMENT", "production") == "development":
         "http://127.0.0.1:3000",
     ]
 
+# ── LessonPro frontend (locked to Vercel URL) ─────────────────────────────────
+ALLOWED_ORIGINS.append("https://lessonpro.vercel.app")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["GET", "POST"],   # Only what we actually use
-    allow_headers=["Content-Type"],  # Only what we actually need
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
 
 app.include_router(generate_router, prefix="/api")
+app.include_router(lesson_router,   prefix="/api")   # ← NEW
 
 
 @app.get("/")
 def root():
-    return {"message": "pptPro API v2.1 running 🚀"}
+    return {"message": "pptPro API v2.2 running 🚀"}
 
 
 @app.get("/health")
